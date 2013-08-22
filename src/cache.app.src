@@ -1,0 +1,24 @@
+{application, cache, [
+	{id, "Cache"},
+	{description, "Cache Server for Erlang and OTP in action."},
+	{sub_description, "Reusable library for building cache applications."},
+	{vsn, "0.1.0"},
+	{modules, [cache_app,
+			   cache_sup,
+			   cache_db]},
+	{registered, [cache_sup, cache_db]},
+	{applications, [kernel,stdlib]},
+	{mod, {cache_app, []}},
+	{env, 
+	         [
+			    {db_user, "wwsg"},
+		            {db_pass, "123456"},
+			    {db_host, "192.168.52.58"},
+			    {db_port, 3306},
+		            {db_name, "db_lz"},
+			    {db_encode, utf8}
+		]
+	      
+	}
+]}.
+
