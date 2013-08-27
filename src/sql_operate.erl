@@ -106,10 +106,7 @@ sql_insert(Record) ->
 	end,
 	Keys = lists:map(fun(Key) -> integer_to_list(Key) end,Keys2),
 	ResFields = Map#map.fields -- Map#map.key_fields,
-        io:format("~nfields is ~w~n", [Map#map.fields]),
-        io:format("RestFields is ~w~n", [ResFields]),
 	FieldValues = get_field_values(Res,ResFields,Map#map.ignored_fields,Map#map.term_fields,Map#map.string_fields,[]),
-        io:format("Keys is ~w, Tab is ~w~n", [Keys, make_insert_stmt(Tab)]),
 	emysql:execute(oceanus_pool, make_insert_stmt(Tab), Keys++FieldValues).
 
 sql_update(Record) ->
@@ -123,8 +120,9 @@ sql_update(Record) ->
 			[Keys1]
 	end,
 	Keys = lists:map(fun(Key) -> integer_to_list(Key) end,Keys2),
-	[_KeyField|ResFields] = Map#map.fields,
+        ResFields = Map#map.fields -- Map#map.key_fields,
 	FieldValues = get_field_values(Res,ResFields,Map#map.ignored_fields,Map#map.term_fields,Map#map.string_fields,[]),
+	io:format("FieldValues is ~w", [FieldValues]),
 	emysql:execute(oceanus_pool, make_update_stmt(Tab), FieldValues++Keys).
 
 %%------------------------------------------local fun-------------------------------------------------
@@ -163,7 +161,7 @@ make_update_stmt(Tab) ->
 	list_to_atom_helper("update_"++ erlang:atom_to_list(Tab)).
 
 make_field_list(Map,KeyFields,IgnoreFields) ->
-	Fields = Map#map.fields,
+	Fields = Map#map.fields -- Map#map.key_fields,
 	Fields--IgnoreFields.
 
 make_fields([],S) ->
@@ -280,24 +278,21 @@ do_prepare(Tab,SqlTabName,ID1,ID2,ID3) ->
 
 do_insert_prepare(Tab,Map,SqlTabName,KeyFields,IgnoreFields) ->
 	FieldsList = make_field_list(Map,KeyFields,IgnoreFields), %% put key on
-        io:format("~w~n", [FieldsList]),
 	Fields = make_fields(FieldsList,""),
-        io:format("~w~n", [Fields]),
 	ValuesFormat = make_fields(lists:map(fun(_Any) -> '?' end,FieldsList),""),
         FormatStr = io_lib:format("INSERT INTO ~w (~s) VALUES (~s)", [SqlTabName,Fields,ValuesFormat]),
 	InsertStatement = erlang:list_to_bitstring(
 		FormatStr
 		),
-        io:format("InsertStatement is ~s", [FormatStr]),
 	emysql:prepare(make_insert_stmt(Tab),InsertStatement).
 
 do_update_prepare(Tab,Map,SqlTabName,KeyFields,IgnoreFields) ->
 	FieldsList = make_field_list(Map,[],IgnoreFields),  %% no key
 	Set = make_set(FieldsList,""),
 	Where = make_where(KeyFields,""),
-	InsertStatement = erlang:list_to_bitstring(
-		io_lib:format("UPDATE ~w SET ~s WHERE ~s", [SqlTabName,Set,Where])
-		),
+	FormatStr = io_lib:format("UPDATE ~w SET ~s WHERE ~s", [SqlTabName, Set, Where]),
+	InsertStatement = erlang:list_to_bitstring(FormatStr),
+	io:format("~s~n", [FormatStr]),
 	emysql:prepare(make_update_stmt(Tab),InsertStatement).
 
 creat_db_table(Tab,Map) ->

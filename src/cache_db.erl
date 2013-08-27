@@ -45,7 +45,13 @@ handle_cast({cache_update_notify,Key},State) ->
 
 
 handle_cast(update_to_db,State) ->
-	?DBG(db,"start update to db:~w",[State#db_state.ets]),
+        UpdateList = ets:tab2list(State#db_state.update_ets),
+       case UpdateList /= [] of
+           true ->
+        	?DBG(db,"start update to db:~w, UpdateList is ~w",[State#db_state.ets, UpdateList]);
+	   false ->
+		ok
+	end,
 	UpdateList = ets:tab2list(State#db_state.update_ets),
 	ets:delete_all_objects(State#db_state.update_ets),
 	gen_server:cast(self(),{do_update, UpdateList}),
@@ -57,13 +63,14 @@ handle_cast(update_to_db,State) ->
 handle_cast({do_update, UpdateList},State) ->
 	case UpdateList of
 		[] ->
-			?DBG(db,"finish update to db:~w",[State#db_state.ets]),
 			void;
 		[#update_index{key = Key}|Res] ->
 			case ets:lookup(State#db_state.ets,Key) of
 				[] ->
+					io:format("ets ~wkey ~w's record is not exist~n", [State#db_state.ets, Key]),
 					void;
-				[Record] ->
+				[Record] -> 
+					io:format("update ~w to db", [Record]),
 					sql_operate:sql_update(Record)
 			end,
 			gen_server:cast(self(),{do_update, Res})

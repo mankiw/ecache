@@ -2,4 +2,4 @@
 
 -define(ERR(T, C, P), io:format(C++"~n", P)).
 
--define(DBG(T, C, P), ok).
+-define(DBG(T, C, P), io:format(C++"~n", P)).
